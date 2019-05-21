@@ -27,6 +27,9 @@ target_include_directories(sandstream
     src/
     depends/sdk/src )
 
+install(TARGETS sandstream DESTINATION bin/ )
+install(PROGRAMS README.md LICENSE DESTINATION share/)
+
 set(CPACK_PACKAGE_VERSION ${project_version_revision})
 set(CPACK_PACKAGE_CONTACT "contact@me.directly")
 set(CPACK_RPM_PACKAGE_REQUIRES "")

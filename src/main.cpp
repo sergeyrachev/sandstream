@@ -1,4 +1,6 @@
 #include "main.h"
+#include "version.h"
+#include "birthday.h"
 
 #include <iostream>
 #include <fstream>
@@ -314,8 +316,10 @@ private:
 };
 
 int main(int argc, char *argv[]){
+    std::cout <<  argv[0] << " :: " << version << " :: " << birthday << std::endl;
+
     if(argc == 1 || argc > 4){
-        std::cout << "Usage: " << argv[0] << "file.ts(local path)" << "[ pid(integer) " << " output.bin(path)]" << std::endl;
+        std::cout << "Usage: " << argv[0] << " file.ts(local path) " << " [ pid(integer) " << " output.bin(path) ]" << std::endl;
         return 0;
     }
 
