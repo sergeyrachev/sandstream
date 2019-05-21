@@ -10,23 +10,6 @@
 #include <memory>
 #include <algorithm>
 
-struct stream_t{
-    uint32_t id;
-    uint8_t format;
-};
-
-struct program_t{
-    std::vector<stream_t> streams;
-};
-
-std::vector<program_t> detect(std::istream& source){
-    return {};
-}
-
-std::string to_string(const std::vector<program_t>&){
-    return {};
-}
-
 class ts_packet_t{
     static const uint8_t ts_sync_byte = 0x47;
 public:
@@ -212,14 +195,98 @@ private:
     size_t pes_packet_length{};
 };
 
+class detector_t{
+public:
+    detector_t() = default;
+
+    size_t detect(const uint8_t* data, size_t available_bytes){
+        size_t consumed_bytes = 0;
+        consumed_bytes += ts_packet_t::sync(data, available_bytes);
+
+        if(available_bytes - consumed_bytes < ts_packet_t::ts_packet_size){
+            return 0;
+        }
+
+        ts_packet_t packet(data + consumed_bytes, available_bytes - consumed_bytes);
+
+        static const uint32_t pid_pat = 0;
+        if(packet.payload_unit_start_indicator){
+            if(packet.pid == pid_pat){
+                parse_pat(packet.payload + 1, packet.payload_size - 1);
+            } else if(packet.pid == pmt_pid){
+                parse_pmt(packet.payload + 1, packet.payload_size - 1);
+            }
+        }
+        consumed_bytes += ts_packet_t::ts_packet_size;
+        return consumed_bytes;
+    }
+
+    std::vector<uint32_t> elementary_stream_pids{};
+
+private:
+    void parse_pat(const uint8_t* data, size_t available_bytes){
+        static const size_t section_header_length = 3;
+        static const size_t crc_length = 4;
+        size_t consumed_bytes = 0;
+        consumed_bytes += 1;
+
+        uint32_t section_length = (data[consumed_bytes] & 0x0Ful) << 8ul | data[consumed_bytes + 1];
+        consumed_bytes += 2;
+
+        assert(section_length + section_header_length <= available_bytes);
+
+        consumed_bytes += 5;
+        while(consumed_bytes < section_length + section_header_length - crc_length){
+
+            uint32_t program_number = uint32_t(data[consumed_bytes] << 8ul) | data[consumed_bytes + 1];
+            consumed_bytes += 2;
+
+            pmt_pid = (data[consumed_bytes] & 0x1Ful) << 8ul | data[consumed_bytes + 1];
+            consumed_bytes += 2;
+        }
+    }
+    void parse_pmt(const uint8_t* data, size_t available_bytes){
+
+        elementary_stream_pids.clear();
+
+        static const size_t section_header_length = 3;
+        static const size_t crc_length = 4;
+        size_t consumed_bytes = 0;
+        consumed_bytes += 1;
+
+        uint32_t section_length = (data[consumed_bytes] & 0x0Ful) << 8ul | data[consumed_bytes + 1];
+        consumed_bytes += 2;
+
+        assert(section_length + section_header_length <= available_bytes);
+        consumed_bytes += 7;
+
+        uint32_t program_info_length = (data[consumed_bytes] & 0x0Ful) << 8ul | data[consumed_bytes + 1];
+        consumed_bytes += 2;
+        consumed_bytes += program_info_length;
+
+        while(consumed_bytes < section_length + section_header_length - crc_length){
+
+            uint32_t  stream_type = data[consumed_bytes] ;
+            consumed_bytes += 1;
+
+            uint32_t elementary_pid = (data[consumed_bytes] & 0x1Ful)<< 8ul | data[consumed_bytes + 1];
+            consumed_bytes += 2;
+
+            uint32_t es_info_length = (data[consumed_bytes] & 0x0Ful) << 8ul | data[consumed_bytes + 1];
+            consumed_bytes += 2;
+            consumed_bytes += es_info_length;
+
+            elementary_stream_pids.push_back(elementary_pid);
+        }
+    }
+    uint32_t pmt_pid{0};
+};
+
 class demuxer_t{
 public:
     demuxer_t() = default;
 
     size_t consume(const uint8_t* data, size_t available_bytes, uint32_t pid, std::ostream& sink){
-
-        static const size_t bdav_timestamp_prefix = 4;
-        static const size_t fec_longest_prefix = 20;
 
         size_t consumed_bytes = 0;
         consumed_bytes += ts_packet_t::sync(data, available_bytes);
@@ -247,26 +314,49 @@ private:
 };
 
 int main(int argc, char *argv[]){
-    if(argc == 1 || argc > 3){
-        std::cout << "Usage: " << argv[0] << "file.ts(local path)" << "[" << "pid(integer)" <<"]" << std::endl;
+    if(argc == 1 || argc > 4){
+        std::cout << "Usage: " << argv[0] << "file.ts(local path)" << "[ pid(integer) " << " output.bin(path)]" << std::endl;
         return 0;
     }
+
+    const std::string input_filename(argv[1]);
+    std::ifstream source(input_filename, std::ios::binary );
 
     if(argc == 2){
-        const std::string input_filename(argv[1]);
-        std::ifstream source(input_filename);
 
-        std::cout << to_string(detect(source)) << std::endl;
+        detector_t detect;
+        static const size_t buffer_limit = 10 * 1024 * 1024;
+
+        std::vector<uint8_t> buffer(buffer_limit);
+        std::vector<uint8_t> buffer_b(buffer_limit);
+        size_t filled_bytes = 0;
+        while(source && detect.elementary_stream_pids.empty()){
+
+            source.read(reinterpret_cast<char*>(buffer.data() + filled_bytes), buffer.size() - filled_bytes);
+            size_t available_bytes = source.gcount() + filled_bytes;
+
+            size_t consumed_bytes = 0;
+            size_t used_bytes = 0;
+
+            while((used_bytes = detect.detect(buffer.data() + consumed_bytes, available_bytes - consumed_bytes)) > 0){
+                consumed_bytes += used_bytes;
+            }
+
+            swap(buffer, buffer_b);
+            filled_bytes = std::copy(buffer_b.data() + consumed_bytes, buffer_b.data() + available_bytes, buffer.data()) - buffer.data();
+        }
+
+        for (const auto &es_pid : detect.elementary_stream_pids) {
+            std::cout << "Elementary stream with pid found: " << es_pid << std::endl;
+        }
+
         return 0;
     }
 
-    if(argc == 3){
-
-        const std::string input_filename(argv[1]);
-        const std::string output_filename("output.bin");
+    if(argc == 4){
         const uint32_t pid(std::stol(argv[2], nullptr, 0));
+        const std::string output_filename(argv[3]);
 
-        std::ifstream source(input_filename, std::ios::binary );
         std::ofstream sink(output_filename, std::ios::binary);
 
         demuxer_t dmx;
@@ -289,5 +379,7 @@ int main(int argc, char *argv[]){
             filled_bytes = std::copy(buffer_b.data() + consumed_bytes, buffer_b.data() + available_bytes, buffer.data()) - buffer.data();
         }
     }
+
+
     return 0;
 }
