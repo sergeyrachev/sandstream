@@ -19,7 +19,10 @@ add_executable(sandstream
     ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/birthday.cpp
     src/main.cpp
-    )
+    src/demuxer.cpp
+    src/detector.cpp
+    src/pes_packet.cpp
+    src/ts_packet.cpp)
 target_compile_features(sandstream PRIVATE cxx_std_11 )
 set_target_properties(sandstream PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
 target_include_directories(sandstream
