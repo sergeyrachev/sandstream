@@ -96,7 +96,7 @@ public:
         }
     }
 
-    size_t assign(const uint8_t* data, size_t available_bytes){
+    void assign(const uint8_t* data, size_t available_bytes){
         if(!storage.empty()){
             std::copy(data, data + available_bytes, std::back_inserter(storage));
             if(parse_header(storage.data(), storage.size())){
@@ -104,11 +104,13 @@ public:
             }
         } else {
             payload = data;
+            payload_size = available_bytes;
         }
 
-        payload_size = std::min(pes_packet_length, available_bytes);
-        pes_packet_length -= payload_size;
-        return payload_size;
+        if(pes_packet_length){
+            payload_size = std::min(pes_packet_length, available_bytes);
+            pes_packet_length -= payload_size;
+        }
     }
 
     const uint8_t* payload;
@@ -179,7 +181,9 @@ private:
             payload = data + payload_offset;
             payload_size = available_bytes - payload_offset;
 
-            pes_packet_length -= (pes_header_data_length + flags_length);
+            if(pes_packet_length){
+                pes_packet_length -= (pes_header_data_length + flags_length);
+            }
 
         } else if( stream_id == program_stream_map ||
                  stream_id == private_stream_2 ||
@@ -226,14 +230,13 @@ public:
 
         ts_packet_t packet(data + consumed_bytes, available_bytes - consumed_bytes);
         if(packet.pid == pid){
-            size_t tail_bytes = stream->assign(packet.payload, packet.payload_size);
-            sink.write(reinterpret_cast<const char*>(stream->payload), stream->payload_size);
-
             if(packet.payload_unit_start_indicator){
-                stream = std::unique_ptr<pes_packet_t>(new pes_packet_t(packet.payload + consumed_bytes, packet.payload_size - consumed_bytes));
+                stream = std::unique_ptr<pes_packet_t>(new pes_packet_t(packet.payload, packet.payload_size));
+                sink.write(reinterpret_cast<const char*>(stream->payload), stream->payload_size);
+            } else if(stream){
+                stream->assign(packet.payload, packet.payload_size);
+                sink.write(reinterpret_cast<const char*>(stream->payload), stream->payload_size);
             }
-
-            sink.write(reinterpret_cast<const char*>(stream->payload), stream->payload_size);
         }
         consumed_bytes += ts_packet_t::ts_packet_size;
         return consumed_bytes;
@@ -261,10 +264,10 @@ int main(int argc, char *argv[]){
 
         const std::string input_filename(argv[1]);
         const std::string output_filename("output.bin");
-        const uint32_t pid(std::stol(argv[2]));
+        const uint32_t pid(std::stol(argv[2], nullptr, 0));
 
-        std::ifstream source(input_filename);
-        std::ofstream sink(output_filename);
+        std::ifstream source(input_filename, std::ios::binary );
+        std::ofstream sink(output_filename, std::ios::binary);
 
         demuxer_t dmx;
         static const size_t buffer_limit = 10 * 1024 * 1024;
@@ -283,139 +286,8 @@ int main(int argc, char *argv[]){
             }
 
             swap(buffer, buffer_b);
-            filled_bytes = std::copy(buffer_b.data() + consumed_bytes, buffer_b.data() + available_bytes  - consumed_bytes, buffer.data()) - buffer.data();
+            filled_bytes = std::copy(buffer_b.data() + consumed_bytes, buffer_b.data() + available_bytes, buffer.data()) - buffer.data();
         }
     }
     return 0;
 }
-
-
-
-//    void process(){
-//        while(pos <= fileSize)
-//        {
-//            // Get next packet
-//            BYTE* pTsPacket = pBuffer + pos;
-//
-//            // Get PID
-//            unsigned short usPID = ((pTsPacket[1] & 0x1F) << 8) + (pTsPacket[2] & 0xFF);
-//
-//            // Check for audio or video
-//            if(pidV == usPID || pidA == usPID)
-//            {
-//                // Get payload
-//                bool           isPayloadStart         = ((pTsPacket[1] & 0x40) == 0x40) ? true : false;
-//                unsigned char  ucAdaptationFieldControl = ((pTsPacket[3] & 0x30) >> 4);
-//                BYTE* pPayload = pTsPacket + 4;
-//                if(0x03 == ucAdaptationFieldControl || 0x02 == ucAdaptationFieldControl)
-//                {
-//                    unsigned char ucAdaptationFieldLen = pPayload[0];
-//                    pPayload += sizeof(ucAdaptationFieldLen) + ucAdaptationFieldLen;
-//                }
-//
-//                // Check for payload start
-//                unsigned __int64 ullPts = _I64_MAX;
-//                unsigned char ucPesLength = 0;
-//                if(true == isPayloadStart)
-//                {
-//                    // Check PES header 0x000001
-//                    if(0x00 == pPayload[0] && 0x00 == pPayload[1] && 0x01 == pPayload[2])
-//                    {
-//                        // Get PES length
-//                        ucPesLength = 6;
-//
-//                        BYTE *pTemp = pPayload+6;
-//                        while( *pTemp == 0xff ) {
-//                            ucPesLength++;
-//                        };
-//
-//                        if ( (pPayload[ucPesLength] & 0xc0) == 0x40 ) {
-//                            ucPesLength+=2;
-//                        }
-//
-//                        if ( (pPayload[ucPesLength] & 0xf0) == 0x20 ) {
-//                            ucPesLength+=5;
-//                        }
-//
-//                        if ( (pPayload[ucPesLength] & 0xc0) == 0x30 ) {
-//                            ucPesLength+=10;
-//                        }
-//
-//                        if ( (pPayload[ucPesLength] & 0xc0) == 0x80 ) {
-//
-//                            ucPesLength++;
-//                            unsigned char Flags = pPayload[ucPesLength];
-//                            ucPesLength++;
-//
-//                            unsigned int header_data_len = pPayload[ucPesLength];
-//                            ucPesLength++;
-//
-//                            if(Flags & 0xc0 || Flags & 0x80)
-//                            {
-//                                ucPesLength += 5;
-//                                header_data_len -= 5;
-//                                if(Flags&0x80) {
-//
-//                                    ucPesLength += 5;
-//                                    header_data_len -= 5;
-//                                }
-//
-//                                ullPts  = (unsigned __int64)( ( pPayload[ 9] >> 1 ) & 0x07 ) << 30;
-//                                ullPts |= (unsigned __int64)( ( pPayload[10] >> 0 ) & 0xFF ) << 22;
-//                                ullPts |= (unsigned __int64)( ( pPayload[11] >> 1 ) & 0x7F ) << 15;
-//                                ullPts |= (unsigned __int64)( ( pPayload[12] >> 0 ) & 0xFF ) << 7;
-//                                ullPts |= (unsigned __int64)( ( pPayload[13] >> 1 ) & 0x7F ) << 0;
-//                            }
-//
-//                            if ( Flags & 0x20 ) {
-//
-//                                header_data_len -= 6;
-//                                ucPesLength -= 6;
-//                            }
-//
-//                            if ( Flags & 0x10 ) {
-//
-//                                header_data_len -= 3;
-//                                ucPesLength -= 3;
-//                            }
-//
-//                            if ( Flags & 0x08 ) {
-//
-//                                header_data_len -= 1;
-//                                ucPesLength -= 1;
-//                            }
-//
-//                            if ( Flags & 0x01 ) {
-//                                //ext pes header
-//                            }
-//
-//                            ucPesLength += header_data_len;
-//                        }
-//                    }
-//                }
-//                pPayload += ucPesLength;
-//                int32 nPayloadLen = 188 - (int32)(pPayload - pTsPacket);
-//
-//                if ( 0x03 == ucAdaptationFieldControl || 0x01 == ucAdaptationFieldControl ) {
-//
-//                    // Store first PTS
-//                    if(_I64_MAX == ullFirstPts && _I64_MAX != ullPts)
-//                        ullFirstPts = ullPts;
-//
-//                    // Video
-//                    if(pidV == usPID)
-//                    {
-//                        if(_I64_MAX != ullPts && ullPts >= ullFirstPts)
-//                            ullVideoPts = ullPts - ullFirstPts;
-//                        if(_I64_MAX != ullVideoPts)
-//                        {
-//                            g_pRtmpClient->Send(RtmpVideoAVC, pPayload, nPayloadLen, ullSendPts * 10000 / 90, tc);
-//                        }
-//                    }
-//                }
-//            }
-//
-//            // Next packet
-//            pos += 188;
-//        };
-//    }
