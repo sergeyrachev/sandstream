@@ -12,8 +12,8 @@ message("Build ${project_version_revision} at ${project_birthday}")
 
 project(sandstream VERSION ${project_version})
 
-configure_file(depends/sdk/src/version.cpp.in version.cpp)
-configure_file(depends/sdk/src/birthday.cpp.in birthday.cpp)
+configure_file(src/version.cpp.in version.cpp)
+configure_file(src/birthday.cpp.in birthday.cpp)
 
 add_executable(sandstream
     ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
