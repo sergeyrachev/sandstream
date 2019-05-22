@@ -49,6 +49,12 @@ To get an elementary stream with pid equal 33 and write to file 33.bin use:
 
     mkdir build && cd build
     cmake ..
-    cmake --build . 
+    cmake --build .
+    
+Optionally you can pack application to platform-supported package format.
+    
+    cpack -G TGZ # For just archiving; Tested on Arch Linux
+    cpack -G RPM # For RPM package for Centos 7; not tested
+    cpack -G DEB # For Ubuntu; not tested
 
 
