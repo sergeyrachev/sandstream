@@ -8,9 +8,20 @@ Naive Mpeg2 Transport Stream demultiplexer tool with functionality to detect all
 Run without arguments prints usage example. Run with media file as single argument prints out available elementary streams with their 
 pid value that could be used in full commandline to demultiplex it. 
 
-## End-User Limitations
+## End-User Information
 
-Single elementary stream per run. Supports only PES-packetized elementary streams. Doesn't support stream format changes in stream or PAT/PMT updates 
+Single elementary stream per run. Supports only PES-packetized elementary streams. Doesn't support stream format changes in stream or PAT/PMT updates.
+
+### How-to use
+
+To print all available elementary stream pid run:
+    
+    sandstream elephants.ts 
+    
+To get an elementary stream with pid equal 33 and write to file 33.bin use:
+    
+    sandstream elephants.ts 33 33.bin
+
 
 ## Dev Docs 
 
@@ -29,3 +40,15 @@ Single elementary stream per run. Supports only PES-packetized elementary stream
  - Elementary stream consumer API should be designed better, currently use C++ IOStream as output
  - Better unittest compatibility with better source code modularity and granularity
      
+ ### Tips and trick
+ "version.h" and "birthday.h" provides a generic way to update internal application version and date of build. The values are printed then on run as 
+    
+    sandstream.exe :: 0.0.0+g0000000 :: 2019-05-22T08:08:39Z
+   
+### How-to build
+
+    mkdir build && cd build
+    cmake ..
+    cmake --build . 
+
+
