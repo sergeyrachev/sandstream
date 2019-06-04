@@ -33,6 +33,15 @@ target_include_directories(sandstream
 install(TARGETS sandstream DESTINATION bin/ )
 install(PROGRAMS README.md LICENSE DESTINATION share/)
 
+set(gtest_force_shared_crt ON)
+add_subdirectory(depends/googletest depends/googletest EXCLUDE_FROM_ALL)
+set(GTEST_LIBRARIES gmock_main gtest)
+get_target_property(GTEST_INCLUDE_DIRECTORIES gtest INTERFACE_INCLUDE_DIRECTORIES)
+
+add_executable(sandstream_gtest test/ut_dummy.cpp)
+target_link_libraries(sandstream_gtest PRIVATE ${GTEST_LIBRARIES})
+target_include_directories(sandstream_gtest PRIVATE ${GTEST_INCLUDE_DIRECTORIES})
+
 set(CPACK_PACKAGE_VERSION ${project_version_revision})
 set(CPACK_PACKAGE_CONTACT "contact@me.directly")
 set(CPACK_RPM_PACKAGE_REQUIRES "")
