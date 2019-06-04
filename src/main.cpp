@@ -3,80 +3,91 @@
 #include "birthday.h"
 
 #include "demuxer.h"
-#include "detector.h"
+#include "callback_es.h"
+#include "callback_es_factory.h"
+#include "packetizer.h"
 
 #include <iostream>
 #include <fstream>
 #include <vector>
 
+// For fixed-width integer types
+#include <cstdlib>
+// For size_t, nullptr_t, ptrdiff_t
+#include <cstddef>
+
+class file_output_t:public challenge::callback_es_t{
+public:
+    explicit file_output_t(std::unique_ptr<std::ostream> sink):sink(std::move(sink)){
+
+    }
+
+    void on_data(const uint8_t* data, size_t size) override{
+        sink->write(reinterpret_cast<const char*>(data), size);
+    }
+
+private:
+    std::unique_ptr<std::ostream> sink;
+};
+
+class elementary_stream_handler_t : public challenge::callback_es_factory_t{
+public:
+    explicit elementary_stream_handler_t( const std::string& prefix)
+     : prefix(prefix){
+    }
+
+    std::unique_ptr<challenge::callback_es_t> create(uint8_t stream_type, uint16_t pid ) override {
+        static const std::string extension(".bin");
+        std::string filename = prefix + std::to_string(pid) + extension;
+        std::unique_ptr<std::ostream> sink(new std::ofstream(filename, std::ios::binary));
+        sink->exceptions(std::ios::badbit);
+        return std::unique_ptr<challenge::callback_es_t>(new file_output_t(std::move(sink)));
+    }
+
+private:
+    std::string prefix;
+};
+
 int main(int argc, char *argv[]){
     std::cout <<  argv[0] << " :: " << version << " :: " << birthday << std::endl;
+    const bool wrong_args_run = argc != 3;
+    if(  wrong_args_run ){
+        std::cout << "Usage: " << argv[0] << " file.ts(local path) " << "output_prefix" << std::endl;
 
-    if(argc == 1 || argc > 4){
-        std::cout << "Usage: " << argv[0] << " file.ts(local path) " << " [ pid(integer) " << " output.bin(path) ]" << std::endl;
-        return 0;
+        // An application run without any arguments is a correct case;
+        const bool no_args_run = argc == 1;
+        return no_args_run ? EXIT_SUCCESS : EXIT_FAILURE;
     }
 
     const std::string input_filename(argv[1]);
     std::ifstream source(input_filename, std::ios::binary );
-
-    if(argc == 2){
-
-        challenge::detector_t detect;
-        static const size_t buffer_limit = 10 * 1024 * 1024;
-
-        std::vector<uint8_t> buffer(buffer_limit);
-        std::vector<uint8_t> buffer_b(buffer_limit);
-        size_t filled_bytes = 0;
-        while(source && detect.elementary_stream_pids.empty()){
-
-            source.read(reinterpret_cast<char*>(buffer.data() + filled_bytes), buffer.size() - filled_bytes);
-            size_t available_bytes = source.gcount() + filled_bytes;
-
-            size_t consumed_bytes = 0;
-            size_t used_bytes = 0;
-
-            while((used_bytes = detect.detect(buffer.data() + consumed_bytes, available_bytes - consumed_bytes)) > 0){
-                consumed_bytes += used_bytes;
-            }
-
-            swap(buffer, buffer_b);
-            filled_bytes = std::copy(buffer_b.data() + consumed_bytes, buffer_b.data() + available_bytes, buffer.data()) - buffer.data();
-        }
-
-        for (const auto &es_pid : detect.elementary_stream_pids) {
-            std::cout << "Found an elementary stream with a pid: " << es_pid << std::endl;
-        }
-
-        return 0;
+    if(!source){
+        std::cerr << "Bad input file" << std::endl;
+        return EXIT_FAILURE;
     }
 
-    if(argc == 4){
-        const uint32_t pid(std::stol(argv[2], nullptr, 0));
-        const std::string output_filename(argv[3]);
+    // Might throw if bit has been set before but we check that above
+    source.exceptions( std::ios::badbit );
 
-        std::ofstream sink(output_filename, std::ios::binary);
+    const std::string output_prefix(argv[2]);
+    challenge::packetizer_t packetizer;
+    challenge::demuxer_t dmx( std::unique_ptr<challenge::callback_es_factory_t>{new elementary_stream_handler_t(output_prefix)});
 
-        challenge::demuxer_t dmx;
-        static const size_t buffer_limit = 10 * 1024 * 1024;
-        std::vector<uint8_t> buffer(buffer_limit);
-        std::vector<uint8_t> buffer_b(buffer_limit);
-        size_t filled_bytes = 0;
-        while(source){
-
-            source.read(reinterpret_cast<char*>(buffer.data() + filled_bytes), buffer.size() - filled_bytes);
-            size_t available_bytes = source.gcount() + filled_bytes;
-
-            size_t consumed_bytes = 0;
-            size_t used_bytes = 0;
-            while( (used_bytes = dmx.consume(buffer.data() + consumed_bytes, available_bytes - consumed_bytes, pid, sink)) > 0 ){
-                consumed_bytes += used_bytes;
+    static const std::size_t buffer_limit = 10 * 1024 * 1024;
+    std::vector<uint8_t> buffer(buffer_limit);
+    while (source) {
+        try {
+            source.read(reinterpret_cast<char *>(buffer.data()), buffer.size());
+            auto available_bytes = source.gcount();
+            packetizer.put(buffer.data(), available_bytes);
+            while(auto packet = packetizer.get()){
+                dmx.consume(std::move(packet));
             }
-
-            swap(buffer, buffer_b);
-            filled_bytes = std::copy(buffer_b.data() + consumed_bytes, buffer_b.data() + available_bytes, buffer.data()) - buffer.data();
+        } catch (const std::ios::failure &io_error) {
+            std::cerr << "Non-recoverable IO error happened: " << io_error.what() << " code: " << io_error.code().value() << " message: " << io_error.code().message();
+            return EXIT_FAILURE;
         }
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }

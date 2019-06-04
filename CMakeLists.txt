@@ -18,11 +18,25 @@ configure_file(src/birthday.cpp.in birthday.cpp)
 add_executable(sandstream
     ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/birthday.cpp
-    src/main.cpp
-    src/demuxer.cpp
-    src/detector.cpp
-    src/pes_packet.cpp
-    src/ts_packet.cpp)
+    src/main.cpp src/main.h
+    src/demuxer.cpp src/demuxer.h
+    src/callback_es.cpp src/callback_es.h
+    src/callback_es_factory.cpp src/callback_es_factory.h
+    src/callback_ts_packet.cpp src/callback_ts_packet.h
+    src/storage.cpp src/storage.h
+    src/section_header.cpp src/section_header.h
+    src/masked_two_bytes_value.cpp src/masked_two_bytes_value.h
+    src/parser_psi.cpp src/parser_psi.h
+    src/callback_pat.cpp src/callback_pat.h
+    src/callback_pmt.cpp src/callback_pmt.h
+    src/parser_pat.cpp src/parser_pat.h
+    src/parser_pmt.cpp src/parser_pmt.h
+    src/parser_pes.cpp src/parser_pes.h
+    src/packetizer.cpp src/packetizer.h
+    src/pat.cpp src/pat.h
+    src/pmt.cpp src/pmt.h
+    src/ts_packet.cpp src/ts_packet.h
+    src/details_parser_pat.cpp src/details_parser_pat.h)
 target_compile_features(sandstream PRIVATE cxx_std_11 )
 set_target_properties(sandstream PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
 target_include_directories(sandstream
@@ -38,9 +52,20 @@ add_subdirectory(depends/googletest depends/googletest EXCLUDE_FROM_ALL)
 set(GTEST_LIBRARIES gmock_main gtest)
 get_target_property(GTEST_INCLUDE_DIRECTORIES gtest INTERFACE_INCLUDE_DIRECTORIES)
 
-add_executable(sandstream_gtest test/ut_dummy.cpp)
+add_executable(sandstream_gtest
+    src/masked_two_bytes_value.cpp test/ut_masked_two_bytes_value.cpp
+    src/packetizer.cpp test/ut_packetizer.cpp
+    src/ts_packet.cpp test/ut_ts_packet.cpp
+    src/storage.cpp test/ut_storage.cpp
+    src/parser_pat.cpp test/ut_parser_pat.cpp
+    src/parser_psi.cpp
+    src/parser_pmt.cpp
+    test/mock_callback_pat.cpp test/mock_callback_pat.h
+    test/mock_callback_pmt.cpp test/mock_callback_pmt.h
+    test/mock.cpp test/mock.h
+     )
 target_link_libraries(sandstream_gtest PRIVATE ${GTEST_LIBRARIES})
-target_include_directories(sandstream_gtest PRIVATE ${GTEST_INCLUDE_DIRECTORIES})
+target_include_directories(sandstream_gtest PRIVATE ${GTEST_INCLUDE_DIRECTORIES} src test)
 
 set(CPACK_PACKAGE_VERSION ${project_version_revision})
 set(CPACK_PACKAGE_CONTACT "contact@me.directly")

@@ -1,19 +1,31 @@
 #pragma once
 
-#include "pes_packet.h"
+#include "callback_es.h"
+#include "ts_packet.h"
+#include "callback_pat.h"
+#include "callback_pmt.h"
+#include "callback_es_factory.h"
+#include "callback_ts_packet.h"
 
-#include <cstdint>
 #include <memory>
-#include <ostream>
+#include <map>
 
 namespace challenge{
-    class demuxer_t{
+    class demuxer_t : public callback_pat_t, public callback_pmt_t{
     public:
-        demuxer_t() = default;
+        explicit demuxer_t(std::unique_ptr<callback_es_factory_t> handler);
+        void consume(std::unique_ptr<ts_packet_t> packet);
 
-        size_t consume(const uint8_t* data, size_t available_bytes, uint32_t pid, std::ostream& sink);
+    protected:
+        void on_pat( const pat_t& update) override;
+        void on_pmt(const pmt_t& update) override;
 
     private:
-        std::unique_ptr<pes_packet_t> stream;
+        std::unique_ptr<callback_es_factory_t> handler;
+        std::map<pid_t, std::unique_ptr<callback_ts_packet>> packet_streams;
+        pat_t services;
+        pmt_t tracks;
     };
 }
+
+

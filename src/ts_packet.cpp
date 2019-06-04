@@ -1,42 +1,43 @@
 #include "ts_packet.h"
 
+#include "masked_two_bytes_value.h"
+
 #include <cassert>
 
 challenge::ts_packet_t::ts_packet_t(const uint8_t *data, size_t available_bytes) {
-    assert(*data == ts_sync_byte);
-    assert(available_bytes >= ts_packet_size);
+    using masked_two_bytes_value_t = masked_two_bytes_value_t<const uint8_t *>;
+    size_t position = 0;
+    assert(data);
+    assert(data[position] == ts_packet_t::ts_sync_byte);
+    assert(available_bytes == ts_packet_t::ts_packet_size);
+    position++;
 
-    payload_unit_start_indicator = (data[1] & 0x40ul) == 0x40;
-    pid = ((data[1] & 0x1Ful) << 8ul) + (data[2] & 0xFFul);
-    uint8_t adaptation_field_control = ((data[3] & 0x30ul) >> 4ul);
+    static const uint32_t payload_unit_start_indicator_mask = 0x40;
+    payload_unit_start_indicator = data[1] & payload_unit_start_indicator_mask;
 
-    adaptation_field = nullptr;
-    adaptation_field_size = 0;
+    static const uint32_t pid_msb_mask = 0x1f;
+    pid = masked_two_bytes_value_t(data, position, pid_msb_mask).value;
+    position += masked_two_bytes_value_t::two_byte_value_length;
 
-    payload = data + 4;
-    payload_size = ts_packet_size - 4;
+    static const uint32_t adaptation_field_control_mask = 0x30;
+    static const uint32_t adaptation_field_control_shift = 4;
 
-    static const uint8_t adaptation_field_only = 0x02;
-    static const uint8_t adaptation_field_and_payload = 0x03;
+    uint8_t adaptation_field_control = ((data[position++] & adaptation_field_control_mask) >> adaptation_field_control_shift);
 
-    if(adaptation_field_and_payload == adaptation_field_control || adaptation_field_only == adaptation_field_control) {
-        uint8_t adaptation_field_length = payload[0];
+    const uint8_t* payload_data = data + position;
+    size_t payload_size = ts_packet_t::ts_packet_size - position;
 
-        payload += 1;
-        payload_size -=1;
+    static const uint8_t payload_only = 0x01;
+    static const uint8_t adaptation_field_control_only = 0x02;
+    static const uint8_t adaptation_field_control_and_payload = 0x03;
 
-        adaptation_field = payload;
-        adaptation_field_size = adaptation_field_length;
+    if(adaptation_field_control_and_payload == adaptation_field_control || adaptation_field_control_only == adaptation_field_control) {
+        uint8_t adaptation_field_length = payload_data[0];
+        static const size_t adaptation_field_length_length = 1;
 
-        payload += adaptation_field_length;
-        payload_size -= adaptation_field_length;
+        const size_t adaptation_field_skip_size = adaptation_field_length_length + adaptation_field_length;
+        payload_data += adaptation_field_skip_size;
+        payload_size -= adaptation_field_skip_size;
     }
-}
-
-size_t challenge::ts_packet_t::sync(const uint8_t *data, size_t available_bytes) {
-    size_t skiped_bytes = 0;
-    while( skiped_bytes < available_bytes && *(data + skiped_bytes) != ts_sync_byte){
-        skiped_bytes++;
-    }
-    return skiped_bytes;
+    payload.assign(payload_data, payload_data + payload_size);
 }

@@ -1,26 +1,41 @@
 #include "demuxer.h"
 
 #include "ts_packet.h"
+#include "parser_pat.h"
+#include "parser_pmt.h"
+#include "parser_pes.h"
 
-size_t challenge::demuxer_t::consume(const uint8_t *data, size_t available_bytes, uint32_t pid, std::ostream &sink) {
+challenge::demuxer_t::demuxer_t(std::unique_ptr<callback_es_factory_t> handler)
+: handler(std::move(handler)) {
+    static const uint16_t pat_pid = 0x0000;
+    packet_streams.emplace(pat_pid, std::unique_ptr<callback_ts_packet>{new parser_pat_t(*this)});
+}
 
-    size_t consumed_bytes = 0;
-    consumed_bytes += ts_packet_t::sync(data, available_bytes);
-
-    if(available_bytes - consumed_bytes < ts_packet_t::ts_packet_size){
-        return 0;
+void challenge::demuxer_t::consume(std::unique_ptr<ts_packet_t> packet) {
+    auto stream = packet_streams.find(packet->pid);
+    if(stream != packet_streams.end()){
+        stream->second->put(std::move(packet));
     }
+}
 
-    ts_packet_t packet(data + consumed_bytes, available_bytes - consumed_bytes);
-    if(packet.pid == pid){
-        if(packet.payload_unit_start_indicator){
-            stream = std::unique_ptr<pes_packet_t>(new pes_packet_t(packet.payload, packet.payload_size));
-            sink.write(reinterpret_cast<const char*>(stream->payload), stream->payload_size);
-        } else if(stream){
-            stream->assign(packet.payload, packet.payload_size);
-            sink.write(reinterpret_cast<const char*>(stream->payload), stream->payload_size);
+void challenge::demuxer_t::on_pat(const pat_t &update) {
+    if(services != update){
+        services = update;
+        for (const auto &service : services) {
+            const auto pid = service.first;
+            if(packet_streams.find(pid) == packet_streams.end()){
+                packet_streams.emplace(pid, std::unique_ptr<callback_ts_packet>{new parser_pmt_t(*this)});
+            }
         }
     }
-    consumed_bytes += ts_packet_t::ts_packet_size;
-    return consumed_bytes;
+}
+
+void challenge::demuxer_t::on_pmt(const pmt_t &update) {
+    for (const auto &track : update) {
+        if(tracks.find(track.first) == tracks.end()){
+            auto consumer = handler->create(track.second, track.first);
+            packet_streams.emplace(track.first, std::unique_ptr<callback_ts_packet>{new parser_pes_t(std::move(consumer))});
+            tracks.insert(track);
+        }
+    }
 }
