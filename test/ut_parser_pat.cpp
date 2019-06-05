@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 
 #include "parser_pat.h"
-#include "details_parser_pat.h"
+#include "parser_pat_details.h"
 
 #include "mock_callback_pat.h"
 
@@ -18,12 +18,12 @@ namespace uncovered{
     };
 }
 using uncovered::parser_pat_t;
-using mock::callback_pat;
+using mock::callback_pat_t;
 using challenge::pat_t;
 using challenge::storage_t;
 
 TEST(parser_pat, update){
-    mock::callback_pat callback;
+    mock::callback_pat_t callback;
     ON_CALL(callback, on_pat(_)).WillByDefault(Return());
 
     pat_t meaninfull_pat{{0, 1}, {2, 3}};
@@ -40,18 +40,21 @@ TEST(parser_pat, update){
 TEST(parser_pat, details_parse_payload){
     using details::parse_pat_payload;
 
-    static const size_t payload_size = 8;
+    static const size_t payload_size = 12;
     static const size_t position = 4;
 
-    const std::vector<uint8_t> payload{0x08, 0x09, 0x0a, 0x0b, 0x01, 0x02, 0x03, 0x04, 0xad, 0xad, 0xad, 0xad};
-    auto result = parse_pat_payload(payload_size, payload, position);
+    const std::vector<uint8_t> payload{0x08, 0x09, 0x0a, 0x0b, 0x01, 0x02, 0x03, 0x04, 0x0a, 0x0b, 0x0c, 0x0d, 0xad, 0xad, 0xad, 0xad};
+    challenge::pat_t pats;
+    auto result = parse_pat_payload(payload_size, payload, position, pats);
 
-    ASSERT_EQ(payload_size + position, std::get<0>(result));
+    ASSERT_EQ(payload_size + position, result);
 
-    static const uint16_t expected_pid = 0x0304;
-    static const uint16_t expected_program_number = 0x0102;
-    pat_t expected_pat{{ expected_pid, expected_program_number }};
-    ASSERT_EQ(expected_pat, std::get<1>(result));
+    static const uint16_t expected_pid_first = 0x0304;
+    static const uint16_t expected_program_number_first = 0x0102;
+    static const uint16_t expected_pid_second = 0x0c0d;
+    static const uint16_t expected_program_number_second = 0x0a0b;
+    pat_t expected_pat{{ expected_pid_first, expected_program_number_first }, { expected_pid_second, expected_program_number_second }};
+    ASSERT_EQ(expected_pat, pats);
 }
 
 TEST(parser_pat, parse_payload_single) {
@@ -68,9 +71,9 @@ TEST(parser_pat, parse_payload_single) {
     storage_t storage;
     storage.push_back({nullptr, payload.data(), payload.size()});
 
-    mock::callback_pat callback;
+    mock::callback_pat_t callback;
     parser_pat_t parser(callback);
-    auto result = parser.parse_payload({}, payload_size, storage, position);
+    auto result = parser.parse_payload(payload_size, storage, position);
     ASSERT_EQ(payload_size + position, result);
     ASSERT_EQ(expected_pat, parser.services);
 }
@@ -91,17 +94,17 @@ TEST(parser_pat, parse_payload_accumulation){
     static const uint16_t expected_program_number_second = 0x0809;
     pat_t expected_pat{{ expected_pid_first, expected_program_number_first },{ expected_pid_second, expected_program_number_second }};
 
-    mock::callback_pat callback;
+    mock::callback_pat_t callback;
     parser_pat_t parser(callback);
 
     storage_t storage;
     storage.push_back({nullptr, payload_first.data(), payload_first.size()});
 
-    auto result = parser.parse_payload({}, payload_size, storage, position_first);
+    auto result = parser.parse_payload(payload_size, storage, position_first);
     storage.pop_front(result);
 
     storage.push_back({nullptr, payload_second.data(), payload_second.size()});
 
-    result = parser.parse_payload({}, payload_size, storage, position_second);
+    result = parser.parse_payload(payload_size, storage, position_second);
     ASSERT_EQ(expected_pat, parser.services);
 }

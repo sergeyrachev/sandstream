@@ -4,7 +4,7 @@
 #include <array>
 
 using collection_t = std::array<uint8_t, 2>;
-using masked_two_bytes_value_t = challenge::masked_two_bytes_value_t<collection_t>;
+using masked_two_bytes_value_t = challenge::masked_two_bytes_value_tt<collection_t>;
 
 TEST(masked_two_bytes_value, non_masked){
     collection_t collection{0xab, 0xcd};

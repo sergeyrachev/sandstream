@@ -32,7 +32,20 @@ To get all elementary streams prefixed with name 'elephants_' use:
  "version.h" and "birthday.h" provides a generic way to update internal application version and date of build. The values are printed then on run as 
     
     sandstream.exe :: 0.0.0+g0000000 :: 2019-05-22T08:08:39Z
-   
+
+ ### Important!
+ Unittests have a source code duplication e.g. ut_parser_pmt and ut_parser_pat. That was made intentionally. These units are independent logically and their implementation similarity
+  should not be exploited in unittests as this similarity is not a part of their public contract. As we exploit protected members for testing, changes of one unit should not affect another one
+  but changes for protected members are highly likely.  Theoretically unit tests might be generalized and dupluication could be avoided but it would introduce coupling between units.
+
+ parser_psi_t::parse_result_t and parser_pes_t::parse_result_t are used as a std::optional from C++17 or an outcome pattern or a std::expected proposal. I didn't reinvent the wheel and made a shortcut with local struct type.
+  I guess std::optional implementation might be available in internal SDK or source code library.
+
+ storage_t should be implemented using collection / iterator pattern and be more generic. Coupling with ts_packet is not really needed ad storage operate on own define stored_entry_t type.
+  Iterator implements memoization by design so it increase performance significally. Current implementation is a shortcut.
+
+ parser_pes_t doesn't support a splitted pes header.
+
 ### How-to build
 
     mkdir build && cd build

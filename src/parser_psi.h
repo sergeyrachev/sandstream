@@ -11,13 +11,21 @@ namespace challenge {
         void put(std::unique_ptr<ts_packet_t> packet) override;
 
     protected:
-        virtual size_t parse_payload(const section_header_t &header, size_t payload_size, const storage_t &storage, size_t position);
-        virtual void update();
+        struct parse_result_t{
+            bool is_success;
+            size_t consumed_bytes;
+            section_header_t header;
+        };
+
+    protected:
+        virtual size_t parse_payload( size_t payload_size, const storage_t &storage, size_t position) = 0;
+        virtual void update() = 0;
+
+    protected:
         static size_t skip_padding_bytes(const storage_t &storage, size_t position);
-        static std::tuple<bool, section_header_t> try_parse(const storage_t &storage, size_t &consumed_bytes);
+        static parse_result_t try_parse(const storage_t &storage, size_t initial_position);
 
     private:
         storage_t storage;
     };
-
 }

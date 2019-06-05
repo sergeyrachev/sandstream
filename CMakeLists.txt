@@ -38,7 +38,7 @@ add_executable(sandstream
     src/pat.cpp src/pat.h
     src/pmt.cpp src/pmt.h
     src/ts_packet.cpp src/ts_packet.h
-    src/details_parser_pat.cpp src/details_parser_pat.h)
+    src/parser_pat_details.cpp src/parser_pat_details.h src/parser_pmt_details.cpp src/parser_pmt_details.h)
 target_compile_features(sandstream PRIVATE cxx_std_11 )
 set_target_properties(sandstream PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
 target_include_directories(sandstream
@@ -60,12 +60,14 @@ add_executable(sandstream_gtest
     src/ts_packet.cpp test/ut_ts_packet.cpp
     src/storage.cpp test/ut_storage.cpp
     src/parser_pat.cpp test/ut_parser_pat.cpp
-    src/parser_psi.cpp
-    src/parser_pmt.cpp
+    src/parser_psi.cpp test/ut_parser_psi.cpp
+    src/parser_pmt.cpp test/ut_parser_pmt.cpp
+    src/parser_pes.cpp test/ut_parser_pes.cpp
     test/mock_callback_pat.cpp test/mock_callback_pat.h
     test/mock_callback_pmt.cpp test/mock_callback_pmt.h
     test/mock.cpp test/mock.h
-     )
+    test/mock_parser_psi.cpp test/mock_parser_psi.h
+    test/mock_callback_es.cpp test/mock_callback_es.h)
 target_link_libraries(sandstream_gtest PRIVATE ${GTEST_LIBRARIES})
 target_include_directories(sandstream_gtest PRIVATE ${GTEST_INCLUDE_DIRECTORIES} src test)
 

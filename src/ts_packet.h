@@ -12,6 +12,7 @@ namespace challenge {
 
     public:
         ts_packet_t(const uint8_t* data, size_t available_bytes);
+        ts_packet_t(uint16_t pid, bool payload_unit_start_indicator, const std::vector<uint8_t>& payload);
 
         uint16_t pid;
         bool payload_unit_start_indicator;

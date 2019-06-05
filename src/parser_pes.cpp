@@ -13,9 +13,10 @@ void challenge::parser_pes_t::put(std::unique_ptr<ts_packet_t> packet) {
     storage.push_back({shared_packet, shared_packet->payload.data(), shared_packet->payload.size()});
 
     if (storage.front().packet->payload_unit_start_indicator) {
-        size_t consumed_bytes = 0;
-        if (try_parse(storage, consumed_bytes)) {
-            storage.pop_front(consumed_bytes);
+        size_t initial_position = 0;
+        auto parse_result = try_parse(storage, initial_position);
+        if (parse_result.is_success) {
+            storage.pop_front(parse_result.consumed_bytes);
         } else {
             return;
         }
@@ -28,16 +29,17 @@ void challenge::parser_pes_t::put(std::unique_ptr<ts_packet_t> packet) {
     }
 }
 
-bool challenge::parser_pes_t::try_parse(const storage_t &storage, size_t &position) {
-    using masked_two_bytes_value_t = masked_two_bytes_value_t<storage_t>;
+challenge::parser_pes_t::parse_result_t challenge::parser_pes_t::try_parse(const storage_t &storage, const size_t initial_position) {
+    using masked_two_bytes_value_t = masked_two_bytes_value_tt<storage_t>;
 
     static const uint8_t packet_start_code_prefix_length = 3;
     static const uint8_t stream_id_length = 1;
     static const uint8_t pes_packet_length_length = 2;
 
+    size_t position = initial_position;
     size_t storaged_size = storage.size();
     if (storaged_size - position < packet_start_code_prefix_length + pes_packet_length_length + stream_id_length) {
-        return false;
+        return {};
     }
     position += packet_start_code_prefix_length;
 
@@ -65,7 +67,7 @@ bool challenge::parser_pes_t::try_parse(const storage_t &storage, size_t &positi
 
         static const size_t pes_header_data_length_offset = 2;
         if (storaged_size - position < pes_header_data_length_offset) {
-            return false;
+            return {};
         }
         position += pes_header_data_length_offset;
 
@@ -86,5 +88,5 @@ bool challenge::parser_pes_t::try_parse(const storage_t &storage, size_t &positi
         assert(false);
     }
 
-    return true;
+    return {true, position - initial_position};
 }

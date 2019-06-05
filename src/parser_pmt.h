@@ -11,10 +11,10 @@ namespace challenge {
         explicit parser_pmt_t(callback_pmt_t &callback);
 
     protected:
-        size_t parse_payload(const section_header_t &header, size_t payload_size, const storage_t &storage, size_t position) final;
+        size_t parse_payload(size_t payload_size, const storage_t &storage, size_t position) final;
         void update() override;
 
-    private:
+    protected:
         callback_pmt_t &callback;
         pmt_t tracks;
     };
