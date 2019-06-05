@@ -12,6 +12,8 @@ message("Build ${project_version_revision} at ${project_birthday}")
 
 project(sandstream VERSION ${project_version})
 
+
+
 configure_file(src/version.cpp.in version.cpp)
 configure_file(src/birthday.cpp.in birthday.cpp)
 
@@ -66,6 +68,9 @@ add_executable(sandstream_gtest
      )
 target_link_libraries(sandstream_gtest PRIVATE ${GTEST_LIBRARIES})
 target_include_directories(sandstream_gtest PRIVATE ${GTEST_INCLUDE_DIRECTORIES} src test)
+
+enable_testing()
+add_test( unittests sandstream_gtest )
 
 set(CPACK_PACKAGE_VERSION ${project_version_revision})
 set(CPACK_PACKAGE_CONTACT "contact@me.directly")

@@ -123,3 +123,26 @@ TEST(packetizer_t, lost_sync){
     ASSERT_TRUE(packet);
 }
 
+TEST(packetizer_t, dvb_atsc_packets){
+    static const size_t atsc_prefix_length = 4;
+    const std::array<uint8_t, ts_packet_t::ts_packet_size + atsc_prefix_length> single_packet{0, 1, 2, 3, ts_packet_t::ts_sync_byte, 0x01, 0x02, 0x03};
+
+    packetizer_t packetizer;
+    packetizer.put(single_packet.data(), single_packet.size());
+    auto packet = packetizer.get();
+    ASSERT_TRUE(packet);
+    packet = packetizer.get();
+    ASSERT_FALSE(packet);
+
+    packetizer.put(single_packet.data(), single_packet.size());
+    packetizer.put(single_packet.data(), single_packet.size());
+    packet = packetizer.get();
+    ASSERT_TRUE(packet);
+    packet = packetizer.get();
+    ASSERT_TRUE(packet);
+    packet = packetizer.get();
+    ASSERT_FALSE(packet);
+}
+
+
+
