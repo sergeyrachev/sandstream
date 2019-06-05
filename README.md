@@ -42,7 +42,7 @@ To get all elementary streams prefixed with name 'elephants_' use:
 Additionaly you can run unittests being in build subdirectory:
 
     ctest # just run and get exit status code
-    ctest -V # printы test runner output
+    ctest -V # prints test runner output
 
 Optionally you can pack application to platform-supported package format.
     
