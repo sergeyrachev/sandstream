@@ -13,7 +13,7 @@ challenge::ts_packet_t::ts_packet_t(const uint8_t *data, size_t available_bytes)
     position++;
 
     static const uint32_t payload_unit_start_indicator_mask = 0x40;
-    payload_unit_start_indicator = data[position] & payload_unit_start_indicator_mask;
+    payload_unit_start_indicator = !!(data[position] & payload_unit_start_indicator_mask);
 
     static const uint32_t pid_msb_mask = 0x1f;
     pid = masked_two_bytes_value_t(data, position, pid_msb_mask).value;
@@ -27,7 +27,6 @@ challenge::ts_packet_t::ts_packet_t(const uint8_t *data, size_t available_bytes)
     const uint8_t* payload_data = data + position;
     size_t payload_size = ts_packet_t::ts_packet_size - position;
 
-    static const uint8_t payload_only = 0x01;
     static const uint8_t adaptation_field_control_only = 0x02;
     static const uint8_t adaptation_field_control_and_payload = 0x03;
 

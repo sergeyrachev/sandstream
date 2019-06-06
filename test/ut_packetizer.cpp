@@ -2,14 +2,7 @@
 
 #include "packetizer.h"
 
-namespace uncovered{
-    class packetizer_t : public challenge::packetizer_t{
-    public:
-        using challenge::packetizer_t::parse_single_packet;
-    };
-}
-
-using uncovered::packetizer_t;
+using challenge::packetizer_t;
 using challenge::ts_packet_t;
 
 TEST(packetizer_t, aligned_packets){

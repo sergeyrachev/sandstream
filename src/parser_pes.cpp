@@ -8,8 +8,8 @@ challenge::parser_pes_t::parser_pes_t(std::unique_ptr<callback_es_t> consumer) :
 
 }
 
-void challenge::parser_pes_t::put(std::unique_ptr<ts_packet_t> packet) {
-    std::shared_ptr <ts_packet_t> shared_packet(std::move(packet));
+void challenge::parser_pes_t::put(std::unique_ptr<challenge::ts_packet_t> packet) {
+    std::shared_ptr <challenge::ts_packet_t> shared_packet(std::move(packet));
     storage.push_back({shared_packet, shared_packet->payload.data(), shared_packet->payload.size()});
 
     if (storage.front().packet->payload_unit_start_indicator) {
@@ -30,7 +30,6 @@ void challenge::parser_pes_t::put(std::unique_ptr<ts_packet_t> packet) {
 }
 
 challenge::parser_pes_t::parse_result_t challenge::parser_pes_t::try_parse(const storage_t &storage, const size_t initial_position) {
-    using masked_two_bytes_value_t = masked_two_bytes_value_tt<storage_t>;
 
     static const uint8_t packet_start_code_prefix_length = 3;
     static const uint8_t stream_id_length = 1;
@@ -44,8 +43,8 @@ challenge::parser_pes_t::parse_result_t challenge::parser_pes_t::try_parse(const
     position += packet_start_code_prefix_length;
 
     uint8_t stream_id = storage[position++];
-    uint16_t pes_packet_length = masked_two_bytes_value_t(storage, position).value;
-    position += masked_two_bytes_value_t::two_byte_value_length;
+
+    position += pes_packet_length_length;
 
     static const uint8_t program_stream_map = 0xbc;
     static const uint8_t padding_stream = 0xbe;

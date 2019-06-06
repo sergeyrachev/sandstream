@@ -23,7 +23,7 @@ TEST(parser_pes, parse_header_full_header){
 
     storage.push_back({nullptr, payload.data(), payload.size()});
     const size_t initial_position = 0;
-    auto result = parser_pes_t::try_parse(storage, 0);
+    auto result = parser_pes_t::try_parse(storage, initial_position);
 
     ASSERT_TRUE(result.is_success);
     ASSERT_EQ(pes_header_data_length, result.consumed_bytes);
@@ -39,18 +39,18 @@ TEST(parser_pes, parse_header_partial_data){
 
     storage.push_back({nullptr, payload_part_1.data(), payload_part_1.size()});
     const size_t initial_position = 0;
-    auto result = parser_pes_t::try_parse(storage, 0);
+    auto result = parser_pes_t::try_parse(storage, initial_position);
 
     ASSERT_FALSE(result.is_success);
     ASSERT_EQ(0, result.consumed_bytes);
 
     storage.push_back({nullptr, payload_part_2.data(), payload_part_2.size()});
-    result = parser_pes_t::try_parse(storage, 0);
+    result = parser_pes_t::try_parse(storage, initial_position);
     ASSERT_FALSE(result.is_success);
     ASSERT_EQ(0, result.consumed_bytes);
 
     storage.push_back({nullptr, payload_part_3.data(), payload_part_3.size()});
-    result = parser_pes_t::try_parse(storage, 0);
+    result = parser_pes_t::try_parse(storage, initial_position);
     ASSERT_TRUE(result.is_success);
     ASSERT_EQ(pes_header_data_length, result.consumed_bytes);
 }

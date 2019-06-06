@@ -2,8 +2,8 @@
 
 #include "masked_two_bytes_value.h"
 
-void challenge::parser_psi_t::put(std::unique_ptr<ts_packet_t> packet) {
-    std::shared_ptr <ts_packet_t> shared_packet(std::move(packet));
+void challenge::parser_psi_t::put(std::unique_ptr<challenge::ts_packet_t> packet) {
+    std::shared_ptr <challenge::ts_packet_t> shared_packet(std::move(packet));
     if (shared_packet->payload_unit_start_indicator) {
         uint8_t pointer_field = shared_packet->payload[0];
         static const size_t pointer_field_presence = 1;
@@ -51,10 +51,11 @@ challenge::parser_psi_t::parse_result_t challenge::parser_psi_t::try_parse(const
         return {};
     }
 
-    uint8_t table_id = storage[position++];
+    // Skip table_id
+    position++;
 
     static const uint32_t section_length_msb_mask = 0x0f;
-    uint32_t section_length = masked_two_bytes_value_tt<storage_t>(storage, position, section_length_msb_mask).value;
+    uint16_t section_length = masked_two_bytes_value_tt<storage_t>(storage, position, section_length_msb_mask).value;
     position += masked_two_bytes_value_tt<storage_t>::two_byte_value_length;
 
     if (storaged_size - position < section_length) {

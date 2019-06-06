@@ -119,5 +119,7 @@ TEST(parser_pmt, parse_payload_accumulation){
     storage.push_back({nullptr, payload_second.data(), payload_second.size()});
 
     result = parser.parse_payload( payload_size, storage, position_second);
+
     ASSERT_EQ(expected_pat, parser.tracks);
+    ASSERT_EQ(payload_size + position_second, result);
 }
