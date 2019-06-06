@@ -16,9 +16,9 @@
 // For size_t, nullptr_t, ptrdiff_t
 #include <cstddef>
 
-class file_output_t:public challenge::callback_es_t{
+class output_sink_t:public challenge::callback_es_t{
 public:
-    explicit file_output_t(std::unique_ptr<std::ostream> sink):sink(std::move(sink)){
+    explicit output_sink_t(std::unique_ptr<std::ostream> sink):sink(std::move(sink)){
 
     }
 
@@ -41,7 +41,7 @@ public:
         std::string filename = prefix + std::to_string(pid) + extension;
         std::unique_ptr<std::ostream> sink(new std::ofstream(filename, std::ios::binary));
         sink->exceptions(std::ios::badbit);
-        return std::unique_ptr<challenge::callback_es_t>(new file_output_t(std::move(sink)));
+        return std::unique_ptr<challenge::callback_es_t>(new output_sink_t(std::move(sink)));
     }
 
 private:
