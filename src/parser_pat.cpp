@@ -24,6 +24,5 @@ challenge::pat_t challenge::parser_pat_t::parse_pat_payload(const uint8_t *data,
 
         pat.emplace(pid, program_number);
     }
-    position += crc_length;
     return pat;
 }

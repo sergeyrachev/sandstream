@@ -30,7 +30,7 @@ challenge::parser_pes_t::parse_result_t challenge::parser_pes_t::try_parse_heade
     static const size_t packet_start_code_prefix_length = 3;
     static const size_t stream_id_length = 1;
 
-    static const size_t pes_packet_length_length = masked_two_bytes_value_t::two_byte_value_length;
+    static const size_t pes_packet_length_length = 2;
 
     if (available < packet_start_code_prefix_length + pes_packet_length_length + stream_id_length) {
         return {};
@@ -42,7 +42,6 @@ challenge::parser_pes_t::parse_result_t challenge::parser_pes_t::try_parse_heade
     uint8_t stream_id = data[position];
     position += stream_id_length;
 
-    uint16_t pes_packet_length = masked_two_bytes_value_t(data + position).value;
     position += pes_packet_length_length;
 
     static const uint8_t program_stream_map = 0xbc;
@@ -86,5 +85,5 @@ challenge::parser_pes_t::parse_result_t challenge::parser_pes_t::try_parse_heade
         assert(false);
     }
 
-    return {true, position, };
+    return {true, position };
 }
