@@ -9,7 +9,7 @@ using challenge::masked_two_bytes_value_t;
 TEST(masked_two_bytes_value, non_masked){
     collection_t collection{0xab, 0xcd};
 
-    auto result = masked_two_bytes_value_t(collection.data(), 0).value;
+    auto result = masked_two_bytes_value_t(collection.data()).value;
     ASSERT_EQ(0xabcd, result);
 }
 

@@ -4,9 +4,6 @@
 
 #include <cassert>
 
-//const size_t challenge::ts_packet_t::ts_packet_size = 188;
-const uint8_t challenge::ts_packet_t::ts_sync_byte = 0x47;
-
 challenge::ts_packet_t::ts_packet_t(const uint8_t *data, size_t available_bytes) {
     using challenge::masked_two_bytes_value_t;
     size_t position = 0;
@@ -50,6 +47,10 @@ challenge::ts_packet_t::ts_packet_t(uint16_t pid, bool payload_unit_start_indica
 : pid(pid)
 , payload_unit_start_indicator(payload_unit_start_indicator)
 , payload(payload){
+
+}
+
+challenge::ts_packet_t::ts_packet_t() : ts_packet_t(0, false, {}) {
 
 }
 

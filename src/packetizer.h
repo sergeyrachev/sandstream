@@ -22,7 +22,9 @@ namespace challenge{
         ts_packet_t get() override;
 
     private:
-        std::list<ts_packet_t> packet_sequence;
+        void sync();
+
+    private:
         std::vector<uint8_t> data_storage;
         mutable_buffer_t input_buffer;
     };

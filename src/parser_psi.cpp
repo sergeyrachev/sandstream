@@ -31,7 +31,9 @@ void challenge::parser_psi_t::put(challenge::ts_packet_t packet) {
         parse_result = parser_psi_t::try_parse_header(section_data.data() + consumed_bytes, section_data.size() - consumed_bytes);
     }
 
-    section_data.erase(section_data.begin(), section_data.begin() + consumed_bytes);
+    if(consumed_bytes){
+        section_data.erase(section_data.begin(), section_data.begin() + consumed_bytes);
+    }
 }
 
 size_t challenge::parser_psi_t::skip_padding_bytes(const uint8_t* data, size_t available) {
