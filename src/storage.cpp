@@ -17,32 +17,16 @@ void challenge::storage_t::pop_front(size_t amount) {
             sequence.pop_front();
         }
     }
-
-    if(!sequence.empty()){
-        cached_position = 0;
-        cached_entry = sequence.cbegin();
-    } else {
-        cached_entry = sequence.cend();
-    }
 }
 
 uint8_t challenge::storage_t::operator[](size_t index) const {
     assert(index < stored_size);
-
-    if(cached_entry != sequence.end() && cached_position <= index && cached_position + cached_entry->size > index){
-        return cached_entry->data[index - cached_position];
-    }
-
-    cached_position = 0;
     auto cursor = sequence.cbegin();
     while (index >= cursor->size) {
         size_t skip_size = std::min(index, cursor->size);
         index -= skip_size;
         cursor++;
-        cached_position += skip_size;
     }
-    cached_entry = cursor;
-
     return cursor->data[index];
 }
 
@@ -60,6 +44,6 @@ const challenge::storage_t::stored_entry_t &challenge::storage_t::front() const 
     return sequence.front();
 }
 
-challenge::storage_t::storage_t() : cached_entry(sequence.cend()){
+challenge::storage_t::storage_t() {
 
 }

@@ -29,8 +29,5 @@ namespace challenge {
     private:
         std::list<stored_entry_t> sequence{};
         size_t stored_size{};
-
-        mutable size_t cached_position{};
-        mutable std::list<stored_entry_t>::const_iterator cached_entry;
     };
 }
