@@ -22,8 +22,8 @@ public:
 
     }
 
-    void on_data(const uint8_t* data, size_t size) override{
-        sink->write(reinterpret_cast<const char*>(data), size);
+    void on_data(challenge::const_buffer_t buffer) override{
+        sink->write(reinterpret_cast<const char*>(buffer.data), buffer.size);
     }
 
 private:
@@ -70,19 +70,17 @@ int main(int argc, char *argv[]){
     source.exceptions( std::ios::badbit );
 
     const std::string output_prefix(argv[2]);
-    challenge::packetizer_t packetizer;
+    static const std::size_t buffer_limit = 10 * 1024 * 1024;
+    challenge::packetizer_t packetizer(buffer_limit);
     challenge::demuxer_t dmx( std::unique_ptr<challenge::callback_es_factory_t>{new elementary_stream_handler_t(output_prefix)});
 
-    static const std::size_t buffer_limit = 10 * 1024 * 1024;
-    std::vector<uint8_t> buffer(buffer_limit);
     while (source) {
         try {
-            source.read(reinterpret_cast<char *>(buffer.data()), buffer.size());
-            auto available_bytes = source.gcount();
-            packetizer.put(buffer.data(), available_bytes);
-            while(auto packet = packetizer.get()){
-                dmx.consume(std::move(packet));
-            }
+            auto buffer = packetizer.request();
+            source.read(reinterpret_cast<char *>(buffer.data), buffer.size);
+            buffer.size = source.gcount();
+            packetizer.confirm(buffer);
+            dmx.consume(packetizer);
         } catch (const std::ios::failure &io_error) {
             std::cerr << "Non-recoverable IO error happened: " << io_error.what() << " code: " << io_error.code().value() << " message: " << io_error.code().message();
             return EXIT_FAILURE;

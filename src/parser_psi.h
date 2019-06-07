@@ -2,13 +2,14 @@
 
 #include "callback_ts_packet.h"
 #include "section_header.h"
-#include "storage.h"
+
+#include <vector>
 
 namespace challenge {
 
     class parser_psi_t : public callback_ts_packet {
     public:
-        void put(std::unique_ptr<ts_packet_t> packet) override;
+        void put(ts_packet_t packet) override;
 
     protected:
         struct parse_result_t{
@@ -18,14 +19,13 @@ namespace challenge {
         };
 
     protected:
-        virtual size_t parse_payload( size_t payload_size, const storage_t &storage, size_t position) = 0;
-        virtual void update() = 0;
+        virtual void on_payload(const uint8_t* data, size_t available) = 0;
 
     protected:
-        static size_t skip_padding_bytes(const storage_t &storage, size_t position);
-        static parse_result_t try_parse(const storage_t &storage, size_t initial_position);
+        static size_t skip_padding_bytes(const uint8_t* data, size_t available);
+        static parse_result_t try_parse_header(const uint8_t* data, size_t available);
 
     private:
-        storage_t storage;
+        std::vector<uint8_t> section_data;
     };
 }

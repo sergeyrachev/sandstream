@@ -2,36 +2,49 @@
 
 #include "packetizer.h"
 
-using challenge::packetizer_t;
 using challenge::ts_packet_t;
 
+namespace fake{
+    class packetizer_t : public challenge::packetizer_t{
+    public:
+        void put( const uint8_t* p, size_t size){
+            auto buffer = request();
+
+            memcpy(buffer.data, p, size);
+            buffer.size = size;
+
+            confirm(buffer);
+        }
+    };
+}
+
+using fake::packetizer_t;
+
 TEST(packetizer_t, aligned_packets){
-    const std::array<uint8_t, ts_packet_t::ts_packet_size> single_packet{ts_packet_t::ts_sync_byte, 0x01, 0x02, 0x03};
+    const std::array<uint8_t, challenge::ts_packet_t::ts_packet_size> single_packet{ts_packet_t::ts_sync_byte, 0x01, 0x02, 0x03};
     
     packetizer_t packetizer;
+    ASSERT_TRUE(packetizer.is_depleted());
+
+    packetizer.put(single_packet.data(), single_packet.size());
+    ASSERT_FALSE(packetizer.is_depleted());
+
     auto packet = packetizer.get();
-    ASSERT_FALSE(packet);
+    ASSERT_TRUE(packetizer.is_depleted());
 
     packetizer.put(single_packet.data(), single_packet.size());
-    packet = packetizer.get();
-    ASSERT_TRUE(packet);
-    packet = packetizer.get();
-    ASSERT_FALSE(packet);
+    ASSERT_FALSE(packetizer.is_depleted());
 
-    packetizer.put(single_packet.data(), single_packet.size());
     packet = packetizer.get();
-    ASSERT_TRUE(packet);
-    packet = packetizer.get();
-    ASSERT_FALSE(packet);
+    ASSERT_TRUE(packetizer.is_depleted());
 
     packetizer.put(single_packet.data(), single_packet.size());
     packetizer.put(single_packet.data(), single_packet.size());
+    ASSERT_FALSE(packetizer.is_depleted());
     packet = packetizer.get();
-    ASSERT_TRUE(packet);
+    ASSERT_FALSE(packetizer.is_depleted());
     packet = packetizer.get();
-    ASSERT_TRUE(packet);
-    packet = packetizer.get();
-    ASSERT_FALSE(packet);
+    ASSERT_TRUE(packetizer.is_depleted());
 }
 
 TEST(packetizer_t, accumulation){
@@ -41,29 +54,24 @@ TEST(packetizer_t, accumulation){
 
     packetizer_t packetizer;
     packetizer.put(single_packet_head.data(), single_packet_head.size());
+    ASSERT_TRUE(packetizer.is_depleted());
+
+    packetizer.put(single_packet_tail.data(), single_packet_tail.size());
+    ASSERT_FALSE(packetizer.is_depleted());
+
     auto packet = packetizer.get();
-    ASSERT_FALSE(packet);
-
-    packetizer.put(single_packet_tail.data(), single_packet_tail.size());
-    packet = packetizer.get();
-    ASSERT_TRUE(packet);
-
-    packet = packetizer.get();
-    ASSERT_FALSE(packet);
+    ASSERT_TRUE(packetizer.is_depleted());
 
     packetizer.put(single_packet_head.data(), single_packet_head.size());
     packetizer.put(single_packet_tail.data(), single_packet_tail.size());
-
     packetizer.put(single_packet_head.data(), single_packet_head.size());
+    ASSERT_FALSE(packetizer.is_depleted());
 
     packet = packetizer.get();
-    ASSERT_TRUE(packet);
-    packet = packetizer.get();
-    ASSERT_FALSE(packet);
+    ASSERT_TRUE(packetizer.is_depleted());
 
     packetizer.put(single_packet_tail.data(), single_packet_tail.size());
-    packet = packetizer.get();
-    ASSERT_TRUE(packet);
+    ASSERT_FALSE(packetizer.is_depleted());
 }
 
 TEST(packetizer_t, lost_sync){
@@ -75,45 +83,38 @@ TEST(packetizer_t, lost_sync){
 
     packetizer_t packetizer;
     packetizer.put(garbage.data(), garbage.size());
+    ASSERT_TRUE(packetizer.is_depleted());
 
+    packetizer.put(garbage.data(), garbage.size());
+    ASSERT_TRUE(packetizer.is_depleted());
+
+    packetizer.put(single_packet.data(), single_packet.size());
+    ASSERT_FALSE(packetizer.is_depleted());
     auto packet = packetizer.get();
-    ASSERT_FALSE(packet);
 
     packetizer.put(garbage.data(), garbage.size());
-    packet = packetizer.get();
-    ASSERT_FALSE(packet);
+    ASSERT_TRUE(packetizer.is_depleted());
 
     packetizer.put(single_packet.data(), single_packet.size());
+    ASSERT_FALSE(packetizer.is_depleted());
     packet = packetizer.get();
-    ASSERT_TRUE(packet);
 
-    packet = packetizer.get();
-    ASSERT_FALSE(packet);
-
-    packetizer.put(garbage.data(), garbage.size());
-    packet = packetizer.get();
-    ASSERT_FALSE(packet);
-
-    packetizer.put(single_packet.data(), single_packet.size());
-    packet = packetizer.get();
-    ASSERT_TRUE(packet);
 
     packetizer.put(single_packet_head.data(), single_packet_head.size());
-    packet = packetizer.get();
-    ASSERT_FALSE(packet);
+    ASSERT_TRUE(packetizer.is_depleted());
+
 
     packetizer.put(garbage.data(), garbage.size());
-    packet = packetizer.get();
-    ASSERT_FALSE(packet);
-
     packetizer.put(single_packet_tail.data(), single_packet_tail.size());
+    ASSERT_FALSE(packetizer.is_depleted());
     packet = packetizer.get();
-    ASSERT_FALSE(packet);
 
     packetizer.put(single_packet_head.data(), single_packet_head.size());
     packetizer.put(single_packet_tail.data(), single_packet_tail.size());
+    ASSERT_FALSE(packetizer.is_depleted());
     packet = packetizer.get();
-    ASSERT_TRUE(packet);
+
+    ASSERT_TRUE(packetizer.is_depleted());
 }
 
 TEST(packetizer_t, dvb_atsc_packets){
@@ -122,19 +123,18 @@ TEST(packetizer_t, dvb_atsc_packets){
 
     packetizer_t packetizer;
     packetizer.put(single_packet.data(), single_packet.size());
+    ASSERT_FALSE(packetizer.is_depleted());
     auto packet = packetizer.get();
-    ASSERT_TRUE(packet);
-    packet = packetizer.get();
-    ASSERT_FALSE(packet);
 
     packetizer.put(single_packet.data(), single_packet.size());
     packetizer.put(single_packet.data(), single_packet.size());
+    ASSERT_FALSE(packetizer.is_depleted());
     packet = packetizer.get();
-    ASSERT_TRUE(packet);
+
+    ASSERT_FALSE(packetizer.is_depleted());
     packet = packetizer.get();
-    ASSERT_TRUE(packet);
-    packet = packetizer.get();
-    ASSERT_FALSE(packet);
+
+    ASSERT_TRUE(packetizer.is_depleted());
 }
 
 

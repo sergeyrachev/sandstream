@@ -8,42 +8,41 @@ challenge::parser_pes_t::parser_pes_t(std::unique_ptr<callback_es_t> consumer) :
 
 }
 
-void challenge::parser_pes_t::put(std::unique_ptr<challenge::ts_packet_t> packet) {
-    std::shared_ptr <challenge::ts_packet_t> shared_packet(std::move(packet));
-    storage.push_back({shared_packet, shared_packet->payload.data(), shared_packet->payload.size()});
+void challenge::parser_pes_t::put(challenge::ts_packet_t packet) {
 
-    if (storage.front().packet->payload_unit_start_indicator) {
-        size_t initial_position = 0;
-        auto parse_result = try_parse(storage, initial_position);
-        if (parse_result.is_success) {
-            storage.pop_front(parse_result.consumed_bytes);
-        } else {
-            return;
+    auto payload_data = packet.payload.data;
+    auto payload_size = packet.payload.size;
+
+    if (packet.payload_unit_start_indicator) {
+        auto parse_result = try_parse_header(payload_data, payload_size);
+        if( parse_result.is_success ){
+            payload_data += parse_result.consumed_bytes;
+            payload_size -= parse_result.consumed_bytes;
         }
     }
-
-    while (storage.size() != 0) {
-        auto entry = storage.front();
-        consumer->on_data(entry.data, entry.size);
-        storage.pop_front(entry.size);
+    if(payload_size){
+        consumer->on_data({payload_data, payload_size});
     }
 }
 
-challenge::parser_pes_t::parse_result_t challenge::parser_pes_t::try_parse(const storage_t &storage, const size_t initial_position) {
+challenge::parser_pes_t::parse_result_t challenge::parser_pes_t::try_parse_header(const uint8_t* data, size_t available){
+    using challenge::masked_two_bytes_value_t;
+    static const size_t packet_start_code_prefix_length = 3;
+    static const size_t stream_id_length = 1;
 
-    static const uint8_t packet_start_code_prefix_length = 3;
-    static const uint8_t stream_id_length = 1;
-    static const uint8_t pes_packet_length_length = 2;
+    static const size_t pes_packet_length_length = masked_two_bytes_value_t::two_byte_value_length;
 
-    size_t position = initial_position;
-    size_t storaged_size = storage.size();
-    if (storaged_size - position < packet_start_code_prefix_length + pes_packet_length_length + stream_id_length) {
+    if (available < packet_start_code_prefix_length + pes_packet_length_length + stream_id_length) {
         return {};
     }
+
+    size_t position = 0;
     position += packet_start_code_prefix_length;
 
-    uint8_t stream_id = storage[position++];
+    uint8_t stream_id = data[position];
+    position += stream_id_length;
 
+    uint16_t pes_packet_length = masked_two_bytes_value_t(data + position).value;
     position += pes_packet_length_length;
 
     static const uint8_t program_stream_map = 0xbc;
@@ -65,12 +64,12 @@ challenge::parser_pes_t::parse_result_t challenge::parser_pes_t::try_parse(const
         stream_id != h222_type_e_stream) {
 
         static const size_t pes_header_data_length_offset = 2;
-        if (storaged_size - position < pes_header_data_length_offset) {
+        if (available - position < pes_header_data_length_offset) {
             return {};
         }
         position += pes_header_data_length_offset;
 
-        uint8_t pes_header_data_length = storage[position++];
+        uint8_t pes_header_data_length = data[position++];
         position += pes_header_data_length;
 
     } else if (stream_id == program_stream_map ||
@@ -87,5 +86,5 @@ challenge::parser_pes_t::parse_result_t challenge::parser_pes_t::try_parse(const
         assert(false);
     }
 
-    return {true, position - initial_position};
+    return {true, position, };
 }

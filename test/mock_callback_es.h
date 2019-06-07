@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mock.h"
+#include "matcher.h"
 #include "callback_es.h"
 
 namespace mock{
@@ -8,6 +8,6 @@ namespace mock{
     public:
         callback_es_t();
         ~callback_es_t() final;
-        MOCK_METHOD2(on_data, void(const uint8_t* data, size_t size));
+        MOCK_METHOD1(on_data, void(challenge::const_buffer_t));
     };
 }

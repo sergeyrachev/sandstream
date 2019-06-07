@@ -41,10 +41,8 @@ To get all elementary streams prefixed with name 'elephants_' use:
  parser_psi_t::parse_result_t and parser_pes_t::parse_result_t are used as a std::optional from C++17 or an outcome pattern or a std::expected proposal. I didn't reinvent the wheel and made a shortcut with local struct type.
   I guess std::optional implementation might be available in internal SDK or source code library.
 
- storage_t should be implemented using collection / iterator pattern and be more generic. Coupling with ts_packet is not really needed ad storage operate on own define stored_entry_t type.
-  Iterator implements memoization by design so it increase performance significally. Current implementation is a shortcut.
-
- parser_pes_t doesn't support a splitted pes header.
+ Should we allow extra copy of input data but simplify parsing algorithm implementation(currently) or avoid extra copying in any case and implement complex parsing state machine to support cases like split tables,
+ split headers, table/section updates, concatenated streams, dynamic format changes, unknown media streams, auxiliary media stream, private sections.
 
 ### How-to build
 

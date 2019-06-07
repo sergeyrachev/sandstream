@@ -25,7 +25,6 @@ add_executable(sandstream
     src/callback_es.cpp src/callback_es.h
     src/callback_es_factory.cpp src/callback_es_factory.h
     src/callback_ts_packet.cpp src/callback_ts_packet.h
-    src/storage.cpp src/storage.h
     src/section_header.cpp src/section_header.h
     src/masked_two_bytes_value.cpp src/masked_two_bytes_value.h
     src/parser_psi.cpp src/parser_psi.h
@@ -38,7 +37,10 @@ add_executable(sandstream
     src/pat.cpp src/pat.h
     src/pmt.cpp src/pmt.h
     src/ts_packet.cpp src/ts_packet.h
-    src/parser_pat_details.cpp src/parser_pat_details.h src/parser_pmt_details.cpp src/parser_pmt_details.h)
+    src/source_data.cpp src/source_data.h
+    src/source_packet.cpp src/source_packet.h
+    src/buffer.cpp src/buffer.h
+    )
 target_compile_features(sandstream PRIVATE cxx_std_11 )
 set_target_properties(sandstream PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
 target_include_directories(sandstream
@@ -58,14 +60,13 @@ add_executable(sandstream_gtest
     src/masked_two_bytes_value.cpp test/ut_masked_two_bytes_value.cpp
     src/packetizer.cpp test/ut_packetizer.cpp
     src/ts_packet.cpp test/ut_ts_packet.cpp
-    src/storage.cpp test/ut_storage.cpp
     src/parser_pat.cpp test/ut_parser_pat.cpp
     src/parser_psi.cpp test/ut_parser_psi.cpp
     src/parser_pmt.cpp test/ut_parser_pmt.cpp
     src/parser_pes.cpp test/ut_parser_pes.cpp
     test/mock_callback_pat.cpp test/mock_callback_pat.h
     test/mock_callback_pmt.cpp test/mock_callback_pmt.h
-    test/mock.cpp test/mock.h
+    test/matcher.cpp test/matcher.h
     test/mock_parser_psi.cpp test/mock_parser_psi.h
     test/mock_callback_es.cpp test/mock_callback_es.h)
 target_link_libraries(sandstream_gtest PRIVATE ${GTEST_LIBRARIES})

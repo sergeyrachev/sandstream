@@ -3,7 +3,6 @@
 #include "parser_psi.h"
 #include "callback_pmt.h"
 #include "section_header.h"
-#include "storage.h"
 
 namespace challenge {
     class parser_pmt_t : public parser_psi_t {
@@ -11,11 +10,10 @@ namespace challenge {
         explicit parser_pmt_t(callback_pmt_t &callback);
 
     protected:
-        size_t parse_payload(size_t payload_size, const storage_t &storage, size_t position) final;
-        void update() override;
+        void on_payload(const uint8_t* data, size_t available) final;
 
+        static pmt_t parse_pmt_payload( const uint8_t* data, size_t payload_size );
     protected:
         callback_pmt_t &callback;
-        pmt_t tracks;
     };
 }

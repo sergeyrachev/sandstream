@@ -4,8 +4,11 @@
 
 #include <cassert>
 
+//const size_t challenge::ts_packet_t::ts_packet_size = 188;
+const uint8_t challenge::ts_packet_t::ts_sync_byte = 0x47;
+
 challenge::ts_packet_t::ts_packet_t(const uint8_t *data, size_t available_bytes) {
-    using masked_two_bytes_value_t = masked_two_bytes_value_tt<const uint8_t *>;
+    using challenge::masked_two_bytes_value_t;
     size_t position = 0;
     assert(data);
     assert(data[position] == ts_packet_t::ts_sync_byte);
@@ -16,7 +19,7 @@ challenge::ts_packet_t::ts_packet_t(const uint8_t *data, size_t available_bytes)
     payload_unit_start_indicator = (data[position] & payload_unit_start_indicator_mask) != 0;
 
     static const uint32_t pid_msb_mask = 0x1f;
-    pid = masked_two_bytes_value_t(data, position, pid_msb_mask).value;
+    pid = masked_two_bytes_value_t(data + position, pid_msb_mask).value;
     position += masked_two_bytes_value_t::two_byte_value_length;
 
     static const uint32_t adaptation_field_control_mask = 0x30;
@@ -38,12 +41,15 @@ challenge::ts_packet_t::ts_packet_t(const uint8_t *data, size_t available_bytes)
         payload_data += adaptation_field_skip_size;
         payload_size -= adaptation_field_skip_size;
     }
-    payload.assign(payload_data, payload_data + payload_size);
+
+    payload.data = payload_data;
+    payload.size = payload_size;
 }
 
-challenge::ts_packet_t::ts_packet_t(uint16_t pid, bool payload_unit_start_indicator, const std::vector<uint8_t>& payload)
+challenge::ts_packet_t::ts_packet_t(uint16_t pid, bool payload_unit_start_indicator, const_buffer_t payload)
 : pid(pid)
 , payload_unit_start_indicator(payload_unit_start_indicator)
 , payload(payload){
 
 }
+

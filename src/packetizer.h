@@ -1,6 +1,7 @@
 #pragma once
 
-#include "ts_packet.h"
+#include "source_data.h"
+#include "source_packet.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -10,17 +11,19 @@
 #include <list>
 
 namespace challenge{
-    class packetizer_t{
+    class packetizer_t : public challenge::source_data_t, public challenge::source_packet_t{
     public:
-        std::unique_ptr<ts_packet_t> get();
-        void put(const uint8_t* data, size_t size);
+        packetizer_t(size_t max_buffer_size = 10 * 1024 * 1024);
 
-    protected:
-        void store_partial_packet(const uint8_t* data, size_t size);
-        size_t recover_partial_packet(const uint8_t* data, size_t size);
+        mutable_buffer_t request() override;
+        void confirm(mutable_buffer_t filled_buffer) override ;
+
+        bool is_depleted() const override;
+        ts_packet_t get() override;
 
     private:
-        std::list<std::unique_ptr<ts_packet_t>> sequence;
-        std::vector<uint8_t> partial_packet;
+        std::list<ts_packet_t> packet_sequence;
+        std::vector<uint8_t> data_storage;
+        mutable_buffer_t input_buffer;
     };
 }

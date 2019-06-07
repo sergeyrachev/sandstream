@@ -10,15 +10,11 @@ namespace challenge {
         explicit parser_pat_t(callback_pat_t &handler);
 
     protected:
-        size_t parse_payload(size_t payload_size, const storage_t &storage, size_t position) final;
+        void on_payload(const uint8_t* data, size_t available) final;
 
-        void update() override {
-            handler.on_pat(services);
-            services.clear();
-        }
+        static pat_t parse_pat_payload( const uint8_t* data, size_t available );
 
     protected:
-        callback_pat_t &handler;
-        pat_t services{};
+        callback_pat_t &callback;
     };
 }
