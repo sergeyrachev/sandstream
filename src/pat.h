@@ -5,5 +5,11 @@
 #include <map>
 
 namespace challenge{
-    using pat_t = std::map<uint16_t, uint16_t>;
+
+    ///
+    /// @brief Naive PAT model; contains PID and Program Number;
+    ///
+    using pid_t = uint16_t;
+    using program_number_t = uint16_t;
+    using pat_t = std::map<pid_t, program_number_t>;
 }

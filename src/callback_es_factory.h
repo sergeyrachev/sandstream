@@ -7,6 +7,11 @@
 #include <memory>
 
 namespace challenge {
+
+    ///
+    /// @brief User-defined factory; demuxer_t instance uses it to obtain elementary stream data consumer when new elementary stream detected.
+    /// @see callback_es_t
+    ///
     class callback_es_factory_t{
     public:
         virtual ~callback_es_factory_t() = default;

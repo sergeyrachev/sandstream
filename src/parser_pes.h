@@ -7,7 +7,10 @@
 
 namespace challenge {
 
-    class parser_pes_t : public callback_ts_packet {
+    ///
+    /// @brief Implements PES packet header parsing and elementary stream payload extraction. Doesn't support split PES header!
+    ///
+    class parser_pes_t : public callback_ts_packet_t {
     public:
         explicit parser_pes_t(std::unique_ptr<callback_es_t> consumer);
 

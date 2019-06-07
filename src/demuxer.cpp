@@ -11,7 +11,7 @@ using challenge::source_packet_t;
 challenge::demuxer_t::demuxer_t(std::unique_ptr<callback_es_factory_t> es_callback_factory)
 : es_callback_factory(std::move(es_callback_factory)) {
     static const uint16_t pat_pid = 0x0000;
-    packet_streams.emplace(pat_pid, std::unique_ptr<callback_ts_packet>{new parser_pat_t(*this)});
+    packet_streams.emplace(pat_pid, std::unique_ptr<callback_ts_packet_t>{new parser_pat_t(*this)});
 }
 
 void challenge::demuxer_t::consume(challenge::source_packet_t& source) {
@@ -29,7 +29,7 @@ void challenge::demuxer_t::on_pat(const pat_t &update) {
     for (const auto &service : update) {
         const auto pid = service.first;
         if(packet_streams.find(pid) == packet_streams.end()){
-            packet_streams.emplace(pid, std::unique_ptr<callback_ts_packet>{new parser_pmt_t(*this)});
+            packet_streams.emplace(pid, std::unique_ptr<callback_ts_packet_t>{new parser_pmt_t(*this)});
         }
     }
 }
@@ -39,7 +39,7 @@ void challenge::demuxer_t::on_pmt(const pmt_t &update) {
         const auto pid = track.first;
         if(packet_streams.find(pid) == packet_streams.end()){
             auto consumer = es_callback_factory->create(track.second, pid);
-            packet_streams.emplace(pid, std::unique_ptr<callback_ts_packet>{new parser_pes_t(std::move(consumer))});
+            packet_streams.emplace(pid, std::unique_ptr<callback_ts_packet_t>{new parser_pes_t(std::move(consumer))});
         }
     }
 }

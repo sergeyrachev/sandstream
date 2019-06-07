@@ -5,6 +5,10 @@
 #include "section_header.h"
 
 namespace challenge {
+
+    ///
+    /// @brief  Implements PMT section payload parsing; doesn't verify section version or table completeness by section number values!
+    ///
     class parser_pmt_t : public parser_psi_t {
     public:
         explicit parser_pmt_t(callback_pmt_t &callback);

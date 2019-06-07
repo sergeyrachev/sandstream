@@ -12,6 +12,12 @@
 #include <map>
 
 namespace challenge{
+
+    ///
+    /// @brief Demupltiplexer engine;
+    /// User should provide @see callback_es_factory_t implementation to get elementary stream data into @see callback_es_t instance
+    /// @see source_packet_t interface is provided by @see packetizer_t; demuxer gets packets from the interface
+    ///
     class demuxer_t : public challenge::callback_pat_t, public challenge::callback_pmt_t{
     public:
         explicit demuxer_t(std::unique_ptr<challenge::callback_es_factory_t> es_callback_factory);
@@ -23,7 +29,7 @@ namespace challenge{
 
     private:
         std::unique_ptr<challenge::callback_es_factory_t> es_callback_factory;
-        std::map<pid_t, std::unique_ptr<challenge::callback_ts_packet>> packet_streams;
+        std::map<pid_t, std::unique_ptr<challenge::callback_ts_packet_t>> packet_streams;
     };
 }
 

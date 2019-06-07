@@ -11,6 +11,10 @@
 #include <list>
 
 namespace challenge{
+
+    ///
+    /// @brief Implements input layer; responsible for memory allocation and transport stream integrity synchronization
+    ///
     class packetizer_t : public challenge::source_data_t, public challenge::source_packet_t{
     public:
         packetizer_t(size_t max_buffer_size = 10 * 1024 * 1024);
@@ -26,6 +30,6 @@ namespace challenge{
 
     private:
         std::vector<uint8_t> data_storage;
-        mutable_buffer_t input_buffer;
+        const_buffer_t input_buffer;
     };
 }

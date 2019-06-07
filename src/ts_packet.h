@@ -6,6 +6,10 @@
 #include <cstdint>
 
 namespace challenge {
+
+    ///
+    /// @brief Naive TS packet model; stores related contant values and provides transport stream layer parsing
+    ///
     class ts_packet_t{
     public:
         static const size_t ts_packet_size = 188;

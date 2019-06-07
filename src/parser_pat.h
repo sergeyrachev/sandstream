@@ -5,6 +5,9 @@
 
 namespace challenge {
 
+    ///
+    /// @brief Implements PAT section payload parsing
+    ///
     class parser_pat_t : public parser_psi_t {
     public:
         explicit parser_pat_t(callback_pat_t &handler);

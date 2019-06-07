@@ -7,7 +7,12 @@
 
 namespace challenge {
 
-    class parser_psi_t : public callback_ts_packet {
+    ///
+    /// @brief PSI section parser shared with PAT and PMT parsers where pure virtual member
+    /// is implemented; provides basic section header reading functionality to determine section
+    /// length and accumulate complete section payload to make underlying parser implementation simplier
+    ///
+    class parser_psi_t : public callback_ts_packet_t {
     public:
         void put(ts_packet_t packet) override;
 

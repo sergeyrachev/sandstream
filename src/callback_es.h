@@ -6,6 +6,12 @@
 #include <cstdint>
 
 namespace challenge {
+
+    ///
+    /// @brief user-side interface to consume demultiplexed data;
+    /// user should implement this interface and provide @see callback_es_factory_t
+    /// instance to demuxer_t
+    ///
     class callback_es_t{
     public:
         virtual ~callback_es_t() = default;
